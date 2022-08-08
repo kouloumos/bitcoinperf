@@ -201,7 +201,8 @@ class Command:
                 name = proc_.name()
 
                 # Recurse into child processes if need be.
-                if name in ['sh', 'time']:
+                # gtime is for macOS
+                if name in ['sh', 'time', 'gtime']: 
                     assert len(proc_.children()) == 1
                     return find_process(proc_.children()[0])
 

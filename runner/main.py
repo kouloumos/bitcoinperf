@@ -263,7 +263,7 @@ cli.add_arg("--no-teardown", action="store_true")
 
 def _missing_pkgs() -> t.List[str]:
     errs = []
-    if "GNU time" not in sh.run("/usr/bin/time --version").stderr:
+    if not sh.run("which time", quiet=True).ok:
         errs.append("Need to install GNU time (sudo apt install time)")
 
     if not sh.run("which fio", quiet=True).ok:

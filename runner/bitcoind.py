@@ -1,6 +1,7 @@
 import json
 import time
 import typing as t
+import platform
 import socket
 import shutil
 import os
@@ -11,7 +12,7 @@ from pathlib import Path
 from . import sh, logging, config, git
 
 logger = logging.get_logger()
-
+_SYS = platform.system()
 
 _BENCH_SPECIFIC_BITCOIND_ARGS = (
     # To "complete" (i.e. latch false out of) initialblockdownload for
@@ -448,7 +449,7 @@ class BuildManager:
             logger.info('Running make clean')
             sh.run('make clean')
 
-        if not (self.repo_path / 'db4').exists():
+        if _SYS == "Linux" and not (self.repo_path / 'db4').exists():
             logger.info("Retrieving db4")
             assert sh.run("./contrib/install_db4.sh .").ok
 
@@ -474,15 +475,16 @@ class BuildManager:
             boostflags = '--with-boost-libdir=%s' % armlib_path
 
         logger.info("Running ./configure ...")
-        conf = sh.run(
-            configure_prefix +
-            './configure BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" '
-            'BDB_CFLAGS="-I${BDB_PREFIX}/include" ' +
-            '--without-gui ' +  # TODO maybe make this configurable?
+        configure_command = configure_prefix + './configure '
+        if _SYS == 'Linux':
+            configure_command += 'BDB_LIBS="-L${BDB_PREFIX}/lib -ldb_cxx-4.8" '
+            'BDB_CFLAGS="-I${BDB_PREFIX}/include" '
+        configure_command += ('--without-gui ' +  # TODO maybe make this configurable?
             target.configure_args +
             # Ensure ccache is disabled so that subsequent make runs
             # are timed accurately.
             '--disable-ccache ' + boostflags)
+        conf = sh.run(configure_command)
 
         if not conf.ok:
             logger.error(conf.failure_msg(f"configure failed for {target}"))
